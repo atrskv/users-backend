@@ -7,8 +7,19 @@ readme = "README.md"
 
 [tool.poetry.dependencies]
 python = "^3.12"
+pytest = "^8.4.2"
+fastapi = "^0.121.0"
+email-validator = "^2.3.0"
+python-dotenv = "^1.2.1"
+requests = "^2.32.5"
+fastapi-pagination = "^0.15.0"
+pydantic = "^2.12.4"
+uvicorn = "^0.38.0"
 
 
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
+
+[tool.basedpyright]
+reportAny = "none"
