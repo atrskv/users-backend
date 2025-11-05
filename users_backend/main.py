@@ -3,11 +3,16 @@ from http import HTTPStatus
 
 import uvicorn
 from fastapi import FastAPI, HTTPException
+from fastapi.params import Depends
+from fastapi_pagination import Page, Params, add_pagination, paginate
 
 from users_backend.models.status import AppStatus
 from users_backend.models.user import User
+from users_backend.utils import get_pagination_params
 
 app: FastAPI = FastAPI()
+_ = add_pagination(app)
+
 
 users_list: list[User] = []
 
@@ -45,8 +50,8 @@ def get_user(user_id: int) -> User:
 
 
 @app.get("/api/users", status_code=HTTPStatus.OK)
-def get_users() -> list[User]:
-    return users_list
+def get_users(params: Params = Depends(get_pagination_params)) -> Page[User]:
+    return paginate(users_list, params)
 
 
 @app.delete("/api/users", status_code=HTTPStatus.OK)

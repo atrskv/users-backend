@@ -7,10 +7,10 @@ from users_backend.models.user import User
 
 
 @pytest.fixture(autouse=False)
-def users(app_url: str):
+def users_items(app_url: str):
     response = requests.get(f"{app_url}/api/users")
     assert response.status_code == HTTPStatus.OK
-    return response.json()
+    return response.json()["items"]
 
 
 @pytest.mark.usefixtures("prepare_users_data")
@@ -27,14 +27,17 @@ class TestShowUsers:
     def test_show_users(self, app_url: str):
         response = requests.get(f"{app_url}/api/users/")
 
-        users = response.json()
+        users_page = response.json()
+        users_items = users_page["items"]
 
         assert response.status_code == HTTPStatus.OK
-        for user in users:
+        for user in users_items:
             _ = User.model_validate(user)
 
-    def test_show_no_duplicates_users(self, users: list[dict[str, str | int]]):
-        users_ids: list[str | int] = [user["id"] for user in users]
+    def test_show_no_duplicates_users(
+        self, users_items: list[dict[str, str | int]]
+    ):
+        users_ids: list[str | int] = [user["id"] for user in users_items]
 
         assert len(users_ids) == len(set(users_ids))
 
