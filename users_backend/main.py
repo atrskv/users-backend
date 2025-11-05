@@ -17,6 +17,19 @@ def get_status() -> AppStatus:
     return AppStatus(users=bool(users_list))
 
 
+@app.post("/api/users", status_code=HTTPStatus.CREATED)
+def add_users():
+    global users_list
+
+    users_list.clear()
+
+    with open("users_backend/users.json") as f:
+        users_data = json.load(f)
+
+    for user_dict in users_data:
+        users_list.append(User.model_validate(user_dict))
+
+
 @app.get("/api/users/{user_id}", status_code=HTTPStatus.OK)
 def get_user(user_id: int) -> User:
     if user_id < 1:
@@ -31,16 +44,19 @@ def get_user(user_id: int) -> User:
     return users_list[user_id - 1]
 
 
-@app.get("/api/users/", status_code=HTTPStatus.OK)
+@app.get("/api/users", status_code=HTTPStatus.OK)
 def get_users() -> list[User]:
     return users_list
 
 
+@app.delete("/api/users", status_code=HTTPStatus.OK)
+def clear_users():
+    global users_list
+
+    users_list.clear()
+
+    return users_list
+
+
 if __name__ == "__main__":
-    with open("users_backend/users.json") as f:
-        users_list: list[dict[str, object]] = json.load(f)
-
-    for user in users_list:
-        _ = User.model_validate(user)
-
     uvicorn.run(app, host="localhost", port=8002)
