@@ -37,7 +37,7 @@ def get_users() -> list[User]:
 
 
 if __name__ == "__main__":
-    with open("users.json") as f:
+    with open("users_backend/users.json") as f:
         users_list: list[dict[str, object]] = json.load(f)
 
     for user in users_list:
