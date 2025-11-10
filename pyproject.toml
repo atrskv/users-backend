@@ -15,6 +15,9 @@ requests = "^2.32.5"
 fastapi-pagination = "^0.15.0"
 pydantic = "^2.12.4"
 uvicorn = "^0.38.0"
+psycopg2-binary = "^2.9.11"
+sqlalchemy = "^2.0.44"
+sqlmodel = "^0.0.27"
 
 
 [build-system]
