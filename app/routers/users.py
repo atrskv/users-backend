@@ -4,7 +4,7 @@ from http import HTTPStatus
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi_pagination import Page, Params, paginate
 
-from app.database import users_list
+from app.db import users
 from app.models.user import User
 from app.utils import get_pagination_params
 
@@ -31,16 +31,19 @@ def get_user(user_id: int) -> User:
             status_code=HTTPStatus.UNPROCESSABLE_ENTITY,
             detail="Invalid user id",
         )
-    if user_id > len(users_list):
+
+    user = users.get_user(user_id)
+
+    if not user:
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND, detail="User not found"
         )
-    return users_list[user_id - 1]
+    return user
 
 
 @router.get("/", status_code=HTTPStatus.OK)
 def get_users(params: Params = Depends(get_pagination_params)) -> Page[User]:
-    return paginate(users_list, params)
+    return paginate(users.get_users(), params)
 
 
 @router.delete("/", status_code=HTTPStatus.OK)
