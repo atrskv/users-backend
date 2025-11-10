@@ -1,10 +1,19 @@
 from collections.abc import Iterable
 
 from fastapi import HTTPException
-from sqlmodel import Session, select
+from sqlmodel import Session, delete, select
 
 from app.db.engine import engine
 from app.models.user import User
+
+
+def create_user(user: User) -> User:
+    with Session(engine) as s:
+        s.add(user)
+        s.commit()
+        s.refresh(user)
+
+        return user
 
 
 def get_user(user_id: int) -> User | None:
@@ -17,15 +26,6 @@ def get_users() -> Iterable[User] | None:
         statement = select(User)
 
         return s.exec(statement).all()
-
-
-def create_user(user: User) -> User:
-    with Session(engine) as s:
-        s.add(user)
-        s.commit()
-        s.refresh(user)
-
-        return user
 
 
 def update_user(user_id: int, user: User) -> User | None:
@@ -50,3 +50,10 @@ def delete_user(user_id: int):
         user = s.get(User, user_id)
         s.delete(user)
         s.commit()
+
+
+def clear_users():
+    with Session(engine) as session:
+        statement = delete(User)
+        session.exec(statement)
+        session.commit()
