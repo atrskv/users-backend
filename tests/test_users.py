@@ -3,7 +3,7 @@ from http import HTTPStatus
 import pytest
 import requests
 
-from users_backend.models.user import User
+from app.models.user import User
 
 
 @pytest.fixture(autouse=False)
