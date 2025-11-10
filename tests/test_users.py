@@ -15,8 +15,8 @@ def users_items(app_url: str):
 
 @pytest.mark.usefixtures("prepare_users_data")
 class TestShowUsers:
-    @pytest.mark.parametrize("user_id", [1, 6, 12])
-    def test_show_user(self, app_url: str, user_id: int):
+    def test_show_user(self, app_url, prepare_users_data):
+        user_id = prepare_users_data[-1]
         response = requests.get(f"{app_url}/api/users/{user_id}")
 
         user = response.json()
@@ -42,7 +42,6 @@ class TestShowUsers:
         assert len(users_ids) == len(set(users_ids))
 
 
-@pytest.mark.usefixtures("clear_users_data")
 class TestShowNonExistentUsers:
     @pytest.mark.parametrize("user_id", [13])
     def test_show_nonexistent_user(self, app_url: str, user_id: int):
