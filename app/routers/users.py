@@ -1,3 +1,6 @@
+from fastapi.routing import APIRouter
+
+
 from http import HTTPStatus
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -7,7 +10,7 @@ from app.db import users
 from app.models.user import User, UserCreate, UserUpdate
 from app.utils import get_pagination_params
 
-router = APIRouter(prefix="/api/users")
+router: APIRouter = APIRouter(prefix="/api/users")
 
 
 @router.delete("/clear", status_code=HTTPStatus.OK)
