@@ -15,7 +15,7 @@ def users_items(app_url: str):
 
 
 @pytest.fixture(autouse=False)
-def created_user(app_url: str):
+def created_user(app_url: str) -> User:
     user = UserCreate.random()
     response = requests.post(f"{app_url}/api/users/", json=user.model_dump())
     return User(**response.json())
