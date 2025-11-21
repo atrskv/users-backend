@@ -34,7 +34,9 @@ jobs:
       - name: Run tests
         run: poetry run pytest --junitxml=test-results.xml
         env:
-          APP_URL: http://127.0.0.1:8002
+          DEV_URL: ${{ secrets.DEV_URL }}
+          ENV: ${{ secrets.ENV }}
+
 
       - run: docker compose logs app
         if: always()

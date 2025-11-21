@@ -1,31 +1,30 @@
 from http import HTTPStatus
 
 import pytest
-import requests
 
 from app.models.user import User, UserCreate, fake
 from app.utils import fake_link
 
 
 @pytest.fixture(autouse=False)
-def users_items(app_url: str):
-    response = requests.get(f"{app_url}/api/users")
+def users_items(users_service):
+    response = users_service.get_users()
     assert response.status_code == HTTPStatus.OK
     return response.json()["items"]
 
 
 @pytest.fixture(autouse=False)
-def created_user(app_url: str):
+def created_user(users_service):
     user = UserCreate.random()
-    response = requests.post(f"{app_url}/api/users/", json=user.model_dump())
+    response = users_service.create_user(user.model_dump())
     return User(**response.json())
 
 
 class TestUsersCreating:
-    def test_create_user(self, app_url: str):
+    def test_create_user(self, users_service):
         user = UserCreate.random()
 
-        response = requests.post(f"{app_url}/api/users", json=user.model_dump())
+        response = users_service.create_user(user.model_dump())
 
         assert response.status_code == HTTPStatus.CREATED
         response_json = response.json()
@@ -36,14 +35,14 @@ class TestUsersCreating:
         assert response_json["email"] == user.email
         _ = User.model_validate(response_json)
 
-    def test_create_user_without_first_name(self, app_url: str):
+    def test_create_user_without_first_name(self, users_service):
         user = {
             "email": fake.email(),
             "last_name": fake.last_name(),
             "avatar": fake_link(),
         }
 
-        response = requests.post(f"{app_url}/api/users/", json=user)
+        response = users_service.create_user(user)
 
         assert response.status_code == HTTPStatus.UNPROCESSABLE_ENTITY
         detail = response.json()["detail"][0]
@@ -53,17 +52,17 @@ class TestUsersCreating:
 
 @pytest.mark.usefixtures("prepare_users_data")
 class TestShowUsers:
-    def test_show_user(self, app_url, prepare_users_data):
+    def test_show_user(self, users_service, prepare_users_data):
         user_id = prepare_users_data[-1]
-        response = requests.get(f"{app_url}/api/users/{user_id}")
 
+        response = users_service.get_user(user_id)
         user = response.json()
 
         assert response.status_code == HTTPStatus.OK
         _ = User.model_validate(user)
 
-    def test_show_just_created_user(self, app_url: str, created_user: str):
-        response = requests.get(f"{app_url}/api/users/{created_user.id}")
+    def test_show_just_created_user(self, users_service, created_user: str):
+        response = users_service.get_user(created_user.id)
 
         assert response.status_code == HTTPStatus.OK
         response_json = response.json()
@@ -74,8 +73,8 @@ class TestShowUsers:
         assert response_json["email"] == created_user.email
         _ = User.model_validate(response_json)
 
-    def test_show_users(self, app_url: str):
-        response = requests.get(f"{app_url}/api/users/")
+    def test_show_users(self, users_service):
+        response = users_service.get_users()
 
         users_page = response.json()
         users_items = users_page["items"]
@@ -94,25 +93,25 @@ class TestShowUsers:
 
 class TestShowNonExistentUsers:
     @pytest.mark.parametrize("user_id", [13])
-    def test_show_nonexistent_user(self, app_url: str, user_id: int):
-        response = requests.get(f"{app_url}/api/users/{user_id}")
+    def test_show_nonexistent_user(self, users_service, user_id: int):
+        response = users_service.get_user(user_id)
 
         assert response.status_code == HTTPStatus.NOT_FOUND
 
     @pytest.mark.parametrize("user_id", [-1, 0, "fafaf"])
-    def test_show_user_with_invalid_id(self, app_url: str, user_id: int):
-        response = requests.get(f"{app_url}/api/users/{user_id}")
+    def test_show_user_with_invalid_id(self, users_service, user_id: int):
+        response = users_service.get_user(user_id)
 
         assert response.status_code == HTTPStatus.UNPROCESSABLE_ENTITY
 
 
 class TestUserUpdating:
-    def test_partial_update_user(self, app_url: str, created_user):
+    def test_partial_update_user(self, users_service, created_user):
         new_first_name = fake.first_name()
 
-        response = requests.patch(
-            f"{app_url}/api/users/{created_user.id}",
-            json={"first_name": new_first_name},
+        response = users_service.update_user(
+            created_user.id,
+            json_={"first_name": new_first_name},
         )
 
         assert response.status_code == HTTPStatus.OK
@@ -124,12 +123,12 @@ class TestUserUpdating:
         assert response_json["email"] == created_user.email
         _ = User.model_validate(response_json)
 
-    def test_update_all_user_info(self, app_url: str, created_user):
+    def test_update_all_user_info(self, users_service, created_user):
         new_user_info = UserCreate.random()
 
-        response = requests.patch(
-            f"{app_url}/api/users/{created_user.id}",
-            json=new_user_info.model_dump(),
+        response = users_service.update_user(
+            created_user.id,
+            json_=new_user_info.model_dump(),
         )
 
         assert response.status_code == HTTPStatus.OK
@@ -141,29 +140,27 @@ class TestUserUpdating:
         assert response_json["email"] == new_user_info.email
         _ = User.model_validate(response_json)
 
-    def test_update_user_with_invalid_id(self, app_url: str):
+    def test_update_user_with_invalid_id(self, users_service):
         new_user_info = UserCreate.random()
-        requests.delete(f"{app_url}/api/users/clear")
+        users_service.clear_users()
 
-        response = requests.patch(
-            f"{app_url}/api/users/{fake.random_int(min=10, max=100)}",
-            json=new_user_info.model_dump(),
+        response = users_service.update_user(
+            f"{fake.random_int(min=10, max=100)}",
+            json_=new_user_info.model_dump(),
         )
 
         assert response.status_code == HTTPStatus.NOT_FOUND
         response_json = response.json()["detail"] == "User not found"
 
 
-def test_delete_user(app_url: str, created_user):
-    response = requests.delete(
-        f"{app_url}/api/users/{created_user.id}",
-    )
+def test_delete_user(users_service, created_user):
+    response = users_service.delete_user(created_user.id)
 
     assert response.status_code == HTTPStatus.OK
     assert response.json()["message"] == "User deleted"
 
     # AND WHEN
-    get_user_response = requests.get(f"{app_url}/api/users/{created_user.id}")
+    get_user_response = users_service.get_user(created_user.id)
 
     # AND THEN
     assert get_user_response.status_code == HTTPStatus.NOT_FOUND
@@ -172,8 +169,8 @@ def test_delete_user(app_url: str, created_user):
 
 @pytest.mark.usefixtures("prepare_users_data")
 class TestUsersPagination:
-    def test_check_users_total(self, app_url: str):
-        response = requests.get(f"{app_url}/api/users")
+    def test_check_users_total(self, users_service, prepare_users_data):
+        response = users_service.get_users()
 
         result = response.json()
 
@@ -183,11 +180,8 @@ class TestUsersPagination:
         assert len(result["items"]) == 10
         assert result["total"] == 50
 
-    def test_paginate_users(self, app_url: str):
-        response = requests.get(
-            f"{app_url}/api/users",
-            params={"page": 2},
-        )
+    def test_paginate_users(self, users_service):
+        response = users_service.get_users(page=2)
 
         result = response.json()
 
@@ -197,11 +191,8 @@ class TestUsersPagination:
         assert len(result["items"]) == 10
         assert result["total"] == 50
 
-    def test_change_users_size_per_page(self, app_url: str):
-        response = requests.get(
-            f"{app_url}/api/users",
-            params={"size": 2},
-        )
+    def test_change_users_size_per_page(self, users_service):
+        response = users_service.get_users(size=2)
 
         result = response.json()
 
@@ -211,11 +202,8 @@ class TestUsersPagination:
         assert len(result["items"]) == 2
         assert result["total"] == 50
 
-    def test_check_invalid_users_page_min_boundary(self, app_url: str):
-        response = requests.get(
-            f"{app_url}/api/users",
-            params={"page": 0},
-        )
+    def test_check_invalid_users_page_min_boundary(self, users_service):
+        response = users_service.get_users(page=0)
 
         result = response.json()
 
@@ -225,22 +213,16 @@ class TestUsersPagination:
             == "Input should be greater than or equal to 1"
         )
 
-    def test_check_invalid_users_page_max_boundary(self, app_url: str):
-        response = requests.get(
-            f"{app_url}/api/users",
-            params={"page": 6},
-        )
+    def test_check_invalid_users_page_max_boundary(self, users_service):
+        response = users_service.get_users(page=6)
 
         result = response.json()
 
         assert response.status_code == HTTPStatus.OK
         assert len(result["items"]) == 0
 
-    def test_check_invalid_users_page_min_boundary_size(self, app_url: str):
-        response = requests.get(
-            f"{app_url}/api/users",
-            params={"size": 0},
-        )
+    def test_check_invalid_users_page_min_boundary_size(self, users_service):
+        response = users_service.get_users(size=0)
 
         result = response.json()
 
@@ -250,11 +232,8 @@ class TestUsersPagination:
             == "Input should be greater than or equal to 1"
         )
 
-    def test_check_invalid_users_page_max_boundary_size(self, app_url: str):
-        response = requests.get(
-            f"{app_url}/api/users",
-            params={"size": 21},
-        )
+    def test_check_invalid_users_page_max_boundary_size(self, users_service):
+        response = users_service.get_users(size=21)
 
         result = response.json()
 
