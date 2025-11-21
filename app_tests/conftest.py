@@ -20,12 +20,8 @@ def env(request):
     return request.config.getoption("--env")
 
 
-@pytest.fixture(scope="session", autouse=False)
-def service(env):
-    with Session_(base_url=API(env).users_service) as session:
-        yield session
-
-
-@pytest.fixture(scope="session", autouse=False)
+@pytest.fixture(scope="session")
 def users_service(env):
-    return UsersService(env)
+    with Session_(base_url=API(env).users_service) as session:
+        service = UsersService(session)
+        yield service

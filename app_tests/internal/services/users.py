@@ -1,10 +1,6 @@
-from app_tests.internal.config import API
-from app_tests.internal.session import Session_
-
-
 class UsersService:
-    def __init__(self, env):
-        self.session = Session_(base_url=API(env).users_service)
+    def __init__(self, session):
+        self.session = session
 
     def create_user(self, json_):
         return self.session.post("/api/users/", json=json_)
